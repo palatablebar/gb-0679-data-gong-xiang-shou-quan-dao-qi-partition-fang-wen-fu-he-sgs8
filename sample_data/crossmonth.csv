@@ -1,0 +1,7 @@
+event_id,principal,resource,partition,access_time,observed,reported,note
+C0001,analyst,orders,2026-11,2026-12-01T00:30:00+08:00,allowed,1,来源月初实为上月末
+C0002,analyst,orders,2026-10,2026-11-01T00:30:00+08:00,blocked,0,来源月初实为十月末
+C0003,analyst,orders,2026-11,2026-11-15T12:00:00+08:00,allowed,1,月中访问
+C0004,auditor,customers,2026-11,2026-12-01T07:59:00+08:00,allowed,1,跨月前夜
+C0005,guest,orders,2026-11,2026-11-20T23:30:00-05:00,blocked,0,无授权主体
+C0006,analyst,orders,2026-11,2026-11-30T20:30:00-05:00,blocked,0,授权已到期

@@ -1,4 +1,4 @@
-from app.values import instant,number
+from app.values import instant,number,zoned
 from app.reasons import reject
 from app.errors import DomainError
 GRANTS=[{"id":"G-01","principal":"analyst","resource":"orders","start":"2026-11-01T00:00:00Z","end":"2026-12-01T00:00:00Z","from_partition":"2026-01","to_partition":"2026-12","effect":"allow"},{"id":"G-02","principal":"analyst","resource":"orders","start":"2026-11-10T00:00:00Z","end":"2026-11-20T00:00:00Z","from_partition":"2026-10","to_partition":"2026-11","effect":"deny"},{"id":"G-03","principal":"auditor","resource":"customers","start":"2026-11-01T00:00:00Z","end":"2026-12-01T00:00:00Z","from_partition":"2026-01","to_partition":"2026-12","effect":"allow"}]
@@ -12,9 +12,10 @@ def evaluate(rows,context):
     grants=validate_grants(context.get("parameters",{}).get("grants",GRANTS));good=[];bad=[]
     for row in rows:
         try:
-            at=instant(row["access_time"]);reported=number(row["reported"])
+            at,source_month,access_month=zoned(row["access_time"]);reported=number(row["reported"])
             if reported not in {0,1}:raise DomainError("BAD_OBSERVED","报送判定必须为0或1")
             active=[g for g in grants if g["principal"]==row["principal"] and g["resource"]==row["resource"] and instant(g["start"])<=at<instant(g["end"])]
-            good.append({**row,"at":at.isoformat(),"candidates":active,"candidate_count":len(active),"reported":str(reported)})
+            cross=source_month!=access_month
+            good.append({**row,"at":at.isoformat(),"candidates":active,"candidate_count":len(active),"reported":str(reported),"access_month":access_month,"source_month":source_month,"cross_month":cross,"month_note":f"来源地区月{source_month}与UTC月{access_month}相邻，按集团日结统一UTC月定版" if cross else ""})
         except (DomainError,KeyError) as e:bad.append(reject(row,getattr(e,"code","MISSING_FIELD"),str(e)))
     return {"rows":good,"quarantine":bad,"metrics":{"active_hits":sum(r["candidate_count"] for r in good),"grant_versions":len(grants)}}

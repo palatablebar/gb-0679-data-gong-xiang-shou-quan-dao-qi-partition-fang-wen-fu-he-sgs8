@@ -1,5 +1,5 @@
 import time
-from app.config import ROOT,MODULES
+from app.config import ROOT,MODULES,SAMPLES
 from app.errors import DomainError
 from app.values import scalar
 from app.manifest import digest,manifest
@@ -13,7 +13,7 @@ from app.modules.m6_audit.rules import evaluate as stage6
 from app.modules.m7_seals.rules import evaluate as stage7
 STAGES=[stage1,stage2,stage3,stage4,stage5,stage6,stage7]
 def load_sample(name):
-    if name not in {"dirty.csv","clean.csv","legacy.csv"}: raise DomainError("BAD_SAMPLE","样例不存在",404)
+    if name not in SAMPLES: raise DomainError("BAD_SAMPLE","样例不存在",404)
     return (ROOT/"sample_data"/name).read_bytes()
 def calculate(raw,params=None,stop=6):
     params=params or {};started=time.monotonic();context={"parameters":params,"raw":raw,"quarantine":[]};stages=[];rows=[]
@@ -25,7 +25,9 @@ def calculate(raw,params=None,stop=6):
         result["cumulative_quarantine"]=list(context["quarantine"])
         context[MODULES[index][0]]=result
         stages.append(result)
-    return {"run_id":digest(raw,params)[:20],"stages":stages,"manifest":manifest(raw,params,started),"parameters":params}
+    payload={"run_id":digest(raw,params)[:20],"stages":stages,"manifest":manifest(raw,params,started),"parameters":params}
+    if len(stages)>4 and stages[4].get("conclusion"): payload["monthly_conclusion"]=stages[4]["conclusion"]
+    return payload
 def execute(raw,params=None):
     result=calculate(raw,params);return store.save(result["run_id"],result)
 def stage_preview(index,payload):

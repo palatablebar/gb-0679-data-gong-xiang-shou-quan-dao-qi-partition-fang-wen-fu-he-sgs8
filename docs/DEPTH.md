@@ -29,6 +29,13 @@
 | TRAP-07 | 上游结果空值 | 误报拒绝 | 隔离缺失 | `app/values.py` | `tests/test_m3.py::test_real_missing_decision_not_zero` |
 | TRAP-19 | 允许与拒绝重叠 | 后写覆盖 | 拒绝优先且排序证据 | `app/modules/m4_conflicts/rules.py` | `tests/test_m4.py::test_deny_priority_counterexample` |
 | TRAP-23 | 授权到期点 | 多放行一次 | 半开生效窗 | `app/modules/m3_grants/rules.py` | `tests/test_m3.py::test_expiry_endpoint_excluded` |
+| TRAP-27 | 跨月口径分裂 | 各模块各自取月 | 批次唯一月度结论，全链服从 | `app/modules/m5_partitions/rules.py` | `tests/test_month.py::test_unique_monthly_conclusion` |
+
+## 月度结论口径
+
+裁决：统一UTC月。依据：集团日结要求UTC口径，复核结论直接进入日结，二次换算本身不可审计；UTC月只依赖输入自带偏移，任何地区重算一致，而来源地区需靠偏移反推（偏移≠地区，夏令时更复杂），推错结论即错；授权生效窗已按UTC比较，月度归集与授权裁决共用同一UTC时刻，避免口径分裂。取舍：来源地区当月口径与集团口径在月末月初有一天以内错位，来源地区月不丢弃，作为证据字段保留并导出，跨月行逐条给出说明，当地共享口径仍可对账。
+
+实现：M3解析访问时刻时一次性得出UTC月（结论月）与来源地区月（证据），跨月行生成说明；M5汇总为批次唯一月度结论（口径、逐月合计、跨月事件清单、未解释数），随批次载荷持久化并展示于全部模块页；M7封存前校验每条跨月行说明完整，存在无法解释的跨月差异即拒绝封存；归档导出首行结论、逐行结论月。同一输入重跑复用已有批次，不新增结论；重跑失败不写库，旧版本与原证据保留。
 
 ## 对账规则
 

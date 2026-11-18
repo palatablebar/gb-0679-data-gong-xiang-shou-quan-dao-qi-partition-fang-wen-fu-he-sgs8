@@ -18,6 +18,14 @@ def instant(value):
         if result.tzinfo is None: raise ValueError()
         return result.astimezone(timezone.utc)
     except (TypeError, ValueError): raise DomainError("INVALID_TIME","时间需要明确偏移")
+def zoned(value):
+    "解析带偏移时间，返回(UTC时刻, 来源地区月, UTC月)；来源月按输入自带时钟取月。"
+    try:
+        parsed=datetime.fromisoformat(str(value).replace("Z","+00:00"))
+        if parsed.tzinfo is None: raise ValueError()
+    except (TypeError, ValueError): raise DomainError("INVALID_TIME","时间需要明确偏移")
+    utc=parsed.astimezone(timezone.utc)
+    return utc,f"{parsed.year:04d}-{parsed.month:02d}",f"{utc.year:04d}-{utc.month:02d}"
 def scalar(value):
     if isinstance(value,Decimal): return str(value)
     if isinstance(value,datetime): return value.isoformat()
